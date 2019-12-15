@@ -1,0 +1,26 @@
+{
+  "name": "express-rest-api",
+  "version": "1.0.0",
+  "description": "A NodeJS Express RESTFul API Boilerplate",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon src/server.js"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "rest",
+    "api"
+  ],
+  "author": "Anuj Raval",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "mongodb": "^3.4.0",
+    "mongoose": "^5.8.1",
+    "nodemon": "^2.0.2"
+  }
+}
