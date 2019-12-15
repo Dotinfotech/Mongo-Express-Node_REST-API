@@ -1,12 +1,9 @@
-const express = require('express');
-const router = express.Router();
+import express from 'express';
 
-router.get('/', function(req, res, next) {
-    res.json({ message: 'Welcome to RESTFul API' });
-    next();
-});
+import userController from '../controllers/User';
 
-// TODO: Add POST, PUT, DELETE, GET Routing
-// Router.get/post/put/delete
-
-module.exports = router;
+export default express
+    .Router()
+    .post('/createUser', userController.createUser)
+    .get('/findAllUsers', userController.searchUsers)
+    .post('/deleteUser/:id', userController.deleteUser);

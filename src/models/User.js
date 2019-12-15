@@ -1,8 +1,11 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
-var schema = new mongoose.Schema({
-    // TODO: Add User Schema
+// TODO: Add User Schema
+const schema = new mongoose.Schema({
+    username: { type: String, required: true, max: 100 },
+    phone: { type: Number, required: true },
 });
 
 const User = new mongoose.model('User', schema);
-module.exports = User;
+
+export default User;

@@ -4,7 +4,7 @@
   "description": "A NodeJS Express RESTFul API Boilerplate",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon src/server.js"
+    "start": "nodemon src/server.js --exec babel-node"
   },
   "keywords": [
     "node",
@@ -22,5 +22,11 @@
     "mongodb": "^3.4.0",
     "mongoose": "^5.8.1",
     "nodemon": "^2.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.7.5",
+    "@babel/node": "^7.7.4",
+    "@babel/preset-env": "^7.7.6",
+    "@babel/register": "^7.7.4"
   }
 }

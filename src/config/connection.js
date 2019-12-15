@@ -1,24 +1,23 @@
-const mongoose = require('mongoose');
+import { set, connect, connection } from 'mongoose';
 
 // We need to define the URL
 const CONNECTION_URL = process.env.CONNECTION_URL;
 const DATABASE_NAME = process.env.DATABASE_NAME;
 
-mongoose.set('useCreateIndex', true);
+set('useCreateIndex', true);
 
 // Make Mongoose use `findOneAndUpdate()`. Note that this option is `true`
 // by default, you need to set it to false.
-mongoose.set('useFindAndModify', false);
+set('useFindAndModify', false);
 
 //Connection establishment
-mongoose.connect(CONNECTION_URL, {
+connect(CONNECTION_URL, {
     useNewUrlParser: true,
     useCreateIndex: true,
     useUnifiedTopology: true,
 });
 
-//Models
-const db = mongoose.connection;
+const db = connection;
 
 //We enabled the Listener
 db.on('error', () => {
