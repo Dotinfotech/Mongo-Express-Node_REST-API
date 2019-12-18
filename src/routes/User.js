@@ -4,7 +4,7 @@ import userController from '../controllers/User';
 
 export default express
     .Router()
-    .post('/createUser', userController.createUser)
+    .post('/signup', userController.registerUser)
     .put('/updateUsers', userController.updateUser)
     .get('/findAllUsers', userController.searchUsers)
     .post('/login', userController.login)
