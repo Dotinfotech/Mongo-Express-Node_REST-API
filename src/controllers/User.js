@@ -8,15 +8,15 @@ async function createUser(req, res) {
         !username && res.send('Enter Username');
         !phone && res.send('Enter Phone');
 
-        userModel.create({ username, phone }, err => {
-            if (err) {
-                res.json({ Error: err });
-                console.log('Error', Error);
-            }
-            res.json({
-                message: 'User created successfully',
+        const User = await userModel
+            .create({ username, phone })
+            .then(() => {
+                res.send('User created successfully');
+            })
+            .catch(err => {
+                res.send(err);
             });
-        });
+        return User;
     } catch (err) {
         res.send(err);
     }
@@ -25,20 +25,19 @@ async function createUser(req, res) {
 // TODO: Update API with search Username query
 async function searchUsers(req, res) {
     try {
-        const { username, phone } = req.body;
-        !username && res.send('Enter Username');
-        !phone && res.send('Enter Phone');
+        const { query } = req.query;
     } catch (err) {
         res.error(err);
     }
 }
 
-// TODO: Add Delete User API with id passed as params
 async function deleteUser(req, res) {
     try {
-        const { username, phone } = req.body;
-        !username && res.send('Enter Username');
-        !phone && res.send('Enter Phone');
+        const { id } = req.params;
+        !id && res.send('Enter ID');
+        userModel
+            .findByIdAndRemove({ _id: id })
+            .then(() => res.send('User deleted successfully'));
     } catch (err) {
         res.error(err);
     }
