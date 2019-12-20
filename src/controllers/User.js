@@ -131,6 +131,32 @@ const login = async (req, res) => {
     }
 };
 
+const changePass = async(req,res) => {
+    try{
+        const {id} = req.params
+        console.log(id)
+        const search = await userModel.findById({_id:id})
+        const {password, newpassword} = req.body
+        
+        const confirmPass = await bcrypt.compare(password, search.password)
+        const verifyPass = await bcrypt.compare(newpassword,search.password)
+        if(!confirmPass){
+          res.send("password doesn't match")
+          return
+        }if(verifyPass){
+          res.send("password can't be your old password enter new password")
+        return
+        }else{
+            const saltRounds = 10;
+            const newHash = bcrypt.hashSync(newpassword, saltRounds);
+            const insert =  await userModel.update({_id:id},{$set:{password:newHash}}) 
+            insert && res.send("password changed")
+        }
+    } catch(err){
+        res.send(err)
+    }
+}
+
 const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -144,14 +170,23 @@ const deleteUser = async (req, res) => {
                 return res.send(err);
             });
     } catch (err) {
-        console.log(res.send(err));
+        console.log("error",res.send(err));
     }
 };
 
+const resetPassword = async(req, res) => {
+    try {
+       
+    }
+    catch(err){
+       console.log(err)
+    }
+}
+
 // TODO: Naresh Make API for 
 // 1. Forgot-Password(Email)
-// 2. Reset-Password(New/Confirm-Password), 
-// 3. Change Password(Old, New/Confirm Password)
+// 2. Reset-Password(New/Confirm-Password),
+// 3. Change Password(Old, New/Confirm Password) done
 // Use sendGrid for sending mail, crypto-random-string for generating token
 
-export default { registerUser, searchUsers, deleteUser, updateUser, login };
+export default { registerUser, searchUsers, deleteUser, updateUser, login, changePass };
