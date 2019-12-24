@@ -136,18 +136,29 @@ const login = async (req, res) => {
 const changePassword = async (req, res) => {
     try {
         const { id } = req.params;
-        const search = await userModel.findById({ _id: id });
         const { password, newpassword } = req.body;
-
-        const confirmPass = await bcrypt.compare(password, search.password);
-        const verifyPass = await bcrypt.compare(newpassword, search.password);
-        if (!confirmPass) {
-            res.send("password doesn't match");
-            return;
+        if(!password || !newpassword){throw new Error("enter password")}
+        if (password === newpassword) {
+            throw new Error("new password can't be your old password");
         }
-        if (verifyPass) {
-            res.send("password can't be your old password enter new password");
-            return;
+        
+        const auth = req.headers.authorization;
+        const authToken =
+            auth && auth.startsWith('Bearer ')
+                ? auth.slice(7, auth.length)
+                : null;
+
+        console.log('auth', authToken);
+        const search = await userModel.findById({ _id: id });
+        console.log(search)
+        const confirmPass = await bcrypt.compare(password, search.password);
+
+        const verifyToken = jwt.verify(authToken, process.env.SECRETKEY || 'mysecretkey')
+        if(!verifyToken){
+            throw new Error ("login required") 
+        }
+        if (!confirmPass) {
+            throw new Error("password doesn't match");
         } else {
             const saltRounds = 10;
             const newHash = bcrypt.hashSync(newpassword, saltRounds);
@@ -187,31 +198,31 @@ const forgotPassword = async (req, res) => {
             return;
         }
 
-        const cryptoToken = cryptoRandomString({
+        const token = cryptoRandomString({
             length: 20,
             type: 'url-safe',
         });
 
         const date = new Date();
-        const expTime = date.getTime() + 600000;
+        const expTime = date.getTime() + 60000;
 
         const search = await userModel.findOneAndUpdate(
             { email: email },
-            { $set: { cryptoToken, expTime } }
+            { $set: { token, expTime } }
         );
         if (!search) throw new Error('Can not find user');
         else {
             sgMail.setApiKey(process.env.KEY);
-            const sendMail = {
-                to: search.email,
-                from: process.env.verificationId,
-                subject: 'reset password',
-                html: `click here to reset password :
-             http://localhost:8080/api/users/createPassword?token=${cryptoToken}
-             Link will expire in 10 min
-             `,
-            };
-            sgMail.send(sendMail);
+            //   const sendMail = {
+            //     to: search.email,
+            //      from: process.env.verificationId,
+            //      subject: 'reset password',
+            //    html: `click here to reset password :
+            //  http://localhost:8080/api/users/resetPassword?token=${token}
+            //   Link will expire in 10 min
+            // //   `,
+            //  };
+            // sgMail.send(sendMail);
             res.send('check your mailid for link');
         }
     } catch (err) {
@@ -221,24 +232,27 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
     try {
-        const { Token } = req.query;
-        const currentTime = new Date();
-        const verify = await userModel.findOne({ cryptoToken : Token });
-        console.log("verify",verify);
-        if (currentTime > verify.expTime) {
-            throw new Error('link expired');
-        } else {
-            const { newPassword } = req.body;
-            if (!newPassword ) {
-                throw new Error('enter new password');
-            }
-            //console.log(password);
-            const update = await userModel.updateMany(
-                { cryptoToken },
-                { password : newPassword },
-                { $delete: { cryptoToken, expTime } }
-            );
-            res.send(update.username);
+        const { token } = req.query;
+        const { newPassword } = req.body;
+
+        if (!token) throw new Error('Add Token');
+        if (!newPassword) throw new Error('Add New Password');
+
+        const saltRounds = 10;
+        const hashed = bcrypt.hashSync(newPassword, saltRounds);
+
+        // const currentTime = new Date().getTime();
+
+        const checkToken = await userModel.findOneAndUpdate(
+            { token },
+            { $set: { password: hashed } },
+            { _id: 1, email: 1, password: 1, username: 1, token: 1, expTime: 1 }
+        );
+        if (!checkToken) throw new Error('Can not find user or Link Expired');
+
+        // TODO: Check condition for token EXP time & Remove Token, EXP time
+        if (checkToken) {
+            res.send('Password Updated Successfully');
         }
     } catch (err) {
         res.send(err.message);

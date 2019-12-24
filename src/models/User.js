@@ -5,8 +5,8 @@ const schema = new mongoose.Schema({
     username: { type: String, required: true, max: 10 },
     email: { type: String, required: true },
     password: { type: String, required: true },
-    cryptoToken : {type:String},
-    expTime : {type:Number}
+    token: { type: String },
+    expTime: { type: Number },
 });
 
 const User = new mongoose.model('User', schema);
