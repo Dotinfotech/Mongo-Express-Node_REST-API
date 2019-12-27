@@ -1,22 +1,19 @@
-const express = require('express');
-const urlencoded = require('body-parser').urlencoded;
-const json = require('body-parser').json;
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import { urlencoded, json } from 'body-parser';
+import cors from 'cors';
+require('dotenv').config({ path: '.env' });
 
 const server = express();
 
 // Env Variables
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || 'localhost';
-// const CONNECTION_URL = process.env.CONNECTION_URL;
-// const DATABASE_NAME = process.env.DATABASE_NAME;
 
 // Database Connection
 require('./config/connection');
 
 // Parser From Req.body
-server.use(urlencoded({ extended: false }));
+server.use(urlencoded({ extended: true }));
 server.use(json());
 
 // Enable the CORS
@@ -35,9 +32,13 @@ server.use(function(req, res, next) {
 server.use(cors());
 
 //Routes
-var usersRouter = require('./routes/User');
+import usersRouter from './routes/User';
 
 // Server Route
+server.get('/', function(req, res) {
+    res.json({ message: 'Welcome to RESTFul API' });
+});
+
 server.use('/api/users', usersRouter);
 
 // Server Start

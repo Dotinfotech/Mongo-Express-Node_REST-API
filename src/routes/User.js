@@ -1,12 +1,14 @@
-const express = require('express');
-const router = express.Router();
+import express from 'express';
 
-router.get('/', function(req, res, next) {
-    res.json({ message: 'Welcome to RESTFul API' });
-    next();
-});
+import userController from '../controllers/User';
 
-// TODO: Add POST, PUT, DELETE, GET Routing
-// Router.get/post/put/delete
-
-module.exports = router;
+export default express
+    .Router()
+    .post('/signup', userController.registerUser)
+    .put('/updateUsers', userController.updateUser)
+    .get('/findAllUsers', userController.searchUsers)
+    .post('/login', userController.login)
+    .post('/deleteUser/:id', userController.deleteUser)
+    .post('/updatePassword', userController.changePassword)
+    .post('/forgotPassword',userController.forgotPassword)
+    .post('/resetPassword', userController.resetPassword)
