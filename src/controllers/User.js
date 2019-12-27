@@ -135,41 +135,47 @@ const login = async (req, res) => {
 
 const changePassword = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { password, newpassword } = req.body;
-        if(!password || !newpassword){throw new Error("enter password")}
-        if (password === newpassword) {
+        const { currentPassword, newPassword } = req.body;
+        const { authorization } = req.headers;
+        if (!authorization) throw new Error('Enter Auth Token');
+        if (!currentPassword) throw new Error('Enter Current Password');
+        if (!newPassword) throw new Error('Enter New Password');
+        if (currentPassword === newPassword) {
             throw new Error("new password can't be your old password");
         }
-        
-        const auth = req.headers.authorization;
+
         const authToken =
-            auth && auth.startsWith('Bearer ')
-                ? auth.slice(7, auth.length)
+            authorization && authorization.startsWith('Bearer ')
+                ? authorization.slice(7, authorization.length)
                 : null;
-
-        console.log('auth', authToken);
-        const search = await userModel.findById({ _id: id });
-        console.log(search)
-        const confirmPass = await bcrypt.compare(password, search.password);
-
-        const verifyToken = jwt.verify(authToken, process.env.SECRETKEY || 'mysecretkey')
-        if(!verifyToken){
-            throw new Error ("login required") 
+        const mySecretKey = process.env.SECRETKEY || 'mysecretkey';
+        const verifyToken = jwt.verify(authToken, mySecretKey);
+        if (!verifyToken) {
+            throw new Error('Can not find Token');
         }
-        if (!confirmPass) {
-            throw new Error("password doesn't match");
+
+        const verifyUser = await userModel.findOne({
+            username: verifyToken.username,
+        });
+        const checkPassword = await bcrypt.compare(
+            currentPassword,
+            verifyUser.password
+        );
+        console.log('checkPassword', checkPassword);
+
+        if (!checkPassword) {
+            res.send('Current Password is wrong');
         } else {
             const saltRounds = 10;
-            const newHash = bcrypt.hashSync(newpassword, saltRounds);
-            const insert = await userModel.update(
-                { _id: id },
-                { $set: { password: newHash } }
+            const generatePassword = bcrypt.hashSync(newPassword, saltRounds);
+            const updateUser = await userModel.updateOne(
+                { username: verifyToken.username },
+                { $set: { password: generatePassword } }
             );
-            insert && res.send('password changed');
+            updateUser && res.send('password changed');
         }
     } catch (err) {
-        res.send(err);
+        res.status(500).send(err.message);
     }
 };
 
@@ -206,23 +212,22 @@ const forgotPassword = async (req, res) => {
         const date = new Date();
         const expTime = date.getTime() + 60000;
 
-        const search = await userModel.findOneAndUpdate(
+        const updateToken = await userModel.findOneAndUpdate(
             { email: email },
             { $set: { token, expTime } }
         );
-        if (!search) throw new Error('Can not find user');
+        if (!updateToken) throw new Error('Can not find user');
         else {
             sgMail.setApiKey(process.env.KEY);
-            //   const sendMail = {
-            //     to: search.email,
-            //      from: process.env.verificationId,
-            //      subject: 'reset password',
-            //    html: `click here to reset password :
-            //  http://localhost:8080/api/users/resetPassword?token=${token}
-            //   Link will expire in 10 min
-            // //   `,
-            //  };
-            // sgMail.send(sendMail);
+            const sendMail = {
+                to: updateToken.email,
+                from: process.env.verificationId,
+                subject: 'reset password',
+                html: `click here to reset password :
+             http://localhost:8080/api/users/resetPassword?token=${token}
+              Link will expire in 10 min`,
+            };
+            sgMail.send(sendMail);
             res.send('check your mailid for link');
         }
     } catch (err) {
