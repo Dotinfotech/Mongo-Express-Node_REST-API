@@ -161,7 +161,6 @@ const changePassword = async (req, res) => {
             currentPassword,
             verifyUser.password
         );
-        console.log('checkPassword', checkPassword);
 
         if (!checkPassword) {
             res.send('Current Password is wrong');
@@ -246,8 +245,6 @@ const resetPassword = async (req, res) => {
         const saltRounds = 10;
         const hashed = bcrypt.hashSync(newPassword, saltRounds);
 
-        // const currentTime = new Date().getTime();
-
         const checkToken = await userModel.findOneAndUpdate(
             { token },
             { $set: { password: hashed } },
@@ -255,7 +252,6 @@ const resetPassword = async (req, res) => {
         );
         if (!checkToken) throw new Error('Can not find user or Link Expired');
 
-        // TODO: Check condition for token EXP time & Remove Token, EXP time
         if (checkToken) {
             res.send('Password Updated Successfully');
         }
@@ -263,12 +259,6 @@ const resetPassword = async (req, res) => {
         res.send(err.message);
     }
 };
-
-// TODO: Naresh Make API for
-// 1. Forgot-Password(Email)
-// 2. Reset-Password(New/Confirm-Password),
-// 3. Change Password(Old, New/Confirm Password) done
-// Use sendGrid for sending mail, crypto-random-string for generating token
 
 export default {
     registerUser,
