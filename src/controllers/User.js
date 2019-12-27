@@ -1,6 +1,8 @@
 import userModel from '../models/User';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import cryptoRandomString from 'crypto-random-string';
+import sgMail from '@sendgrid/mail';
 
 const registerUser = async (req, res) => {
     try {
@@ -131,6 +133,51 @@ const login = async (req, res) => {
     }
 };
 
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const { authorization } = req.headers;
+        if (!authorization) throw new Error('Enter Auth Token');
+        if (!currentPassword) throw new Error('Enter Current Password');
+        if (!newPassword) throw new Error('Enter New Password');
+        if (currentPassword === newPassword) {
+            throw new Error("new password can't be your old password");
+        }
+
+        const authToken =
+            authorization && authorization.startsWith('Bearer ')
+                ? authorization.slice(7, authorization.length)
+                : null;
+        const mySecretKey = process.env.SECRETKEY || 'mysecretkey';
+        const verifyToken = jwt.verify(authToken, mySecretKey);
+        if (!verifyToken) {
+            throw new Error('Can not find Token');
+        }
+
+        const verifyUser = await userModel.findOne({
+            username: verifyToken.username,
+        });
+        const checkPassword = await bcrypt.compare(
+            currentPassword,
+            verifyUser.password
+        );
+
+        if (!checkPassword) {
+            res.send('Current Password is wrong');
+        } else {
+            const saltRounds = 10;
+            const generatePassword = bcrypt.hashSync(newPassword, saltRounds);
+            const updateUser = await userModel.updateOne(
+                { username: verifyToken.username },
+                { $set: { password: generatePassword } }
+            );
+            updateUser && res.send('password changed');
+        }
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+};
+
 const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -144,14 +191,82 @@ const deleteUser = async (req, res) => {
                 return res.send(err);
             });
     } catch (err) {
-        console.log(res.send(err));
+        console.log('error', res.send(err));
     }
 };
 
-// TODO: Naresh Make API for 
-// 1. Forgot-Password(Email)
-// 2. Reset-Password(New/Confirm-Password), 
-// 3. Change Password(Old, New/Confirm Password)
-// Use sendGrid for sending mail, crypto-random-string for generating token
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            res.send('enter email-id to search');
+            return;
+        }
 
-export default { registerUser, searchUsers, deleteUser, updateUser, login };
+        const token = cryptoRandomString({
+            length: 20,
+            type: 'url-safe',
+        });
+
+        const date = new Date();
+        const expTime = date.getTime() + 60000;
+
+        const updateToken = await userModel.findOneAndUpdate(
+            { email: email },
+            { $set: { token, expTime } }
+        );
+        if (!updateToken) throw new Error('Can not find user');
+        else {
+            sgMail.setApiKey(process.env.KEY);
+            const sendMail = {
+                to: updateToken.email,
+                from: process.env.verificationId,
+                subject: 'reset password',
+                html: `click here to reset password :
+             http://localhost:8080/api/users/resetPassword?token=${token}
+              Link will expire in 10 min`,
+            };
+            sgMail.send(sendMail);
+            res.send('check your mailid for link');
+        }
+    } catch (err) {
+        res.send(err.message);
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.query;
+        const { newPassword } = req.body;
+
+        if (!token) throw new Error('Add Token');
+        if (!newPassword) throw new Error('Add New Password');
+
+        const saltRounds = 10;
+        const hashed = bcrypt.hashSync(newPassword, saltRounds);
+
+        const checkToken = await userModel.findOneAndUpdate(
+            { token },
+            { $set: { password: hashed } },
+            { _id: 1, email: 1, password: 1, username: 1, token: 1, expTime: 1 }
+        );
+        if (!checkToken) throw new Error('Can not find user or Link Expired');
+
+        if (checkToken) {
+            res.send('Password Updated Successfully');
+        }
+    } catch (err) {
+        res.send(err.message);
+    }
+};
+
+export default {
+    registerUser,
+    searchUsers,
+    deleteUser,
+    updateUser,
+    login,
+    changePassword,
+    forgotPassword,
+    resetPassword,
+};

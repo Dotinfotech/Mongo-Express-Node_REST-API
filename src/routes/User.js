@@ -8,4 +8,7 @@ export default express
     .put('/updateUsers', userController.updateUser)
     .get('/findAllUsers', userController.searchUsers)
     .post('/login', userController.login)
-    .post('/deleteUser/:id', userController.deleteUser);
+    .post('/deleteUser/:id', userController.deleteUser)
+    .post('/updatePassword', userController.changePassword)
+    .post('/forgotPassword',userController.forgotPassword)
+    .post('/resetPassword', userController.resetPassword)
